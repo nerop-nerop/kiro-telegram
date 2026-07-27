@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>kiro bridge</title>
+<style>
+:root {
+  --bg: #101014;
+  --panel: #16161c;
+  --line: #26262e;
+  --text: #d4d4d8;
+  --dim: #6e6e78;
+  --on: #4ea86b;
+  --off: #b5504f;
+  --link: #6d8fc4;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 14px/1.5 -apple-system, "Segoe UI", Roboto, sans-serif;
+  padding: 32px 16px;
+}
+.wrap { max-width: 780px; margin: 0 auto; }
+
+header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 28px; }
+h1 { font-size: 18px; font-weight: 600; }
+.state { font-size: 12px; color: var(--dim); }
+.state b { color: var(--off); font-weight: 600; }
+.state.up b { color: var(--on); }
+
+nav { display: flex; gap: 20px; border-bottom: 1px solid var(--line); margin-bottom: 24px; }
+nav button {
+  background: none; border: none; color: var(--dim);
+  padding: 0 0 10px; font: inherit; cursor: pointer;
+  border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+nav button.sel { color: var(--text); border-bottom-color: var(--text); }
+
+section { display: none; }
+section.sel { display: block; }
+
+fieldset {
+  border: 1px solid var(--line); border-radius: 4px;
+  padding: 18px; margin-bottom: 18px;
+}
+legend { padding: 0 8px; font-size: 12px; color: var(--dim); text-transform: uppercase; letter-spacing: .06em; }
+
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; }
+.grid .wide { grid-column: 1 / -1; }
+@media (max-width: 620px) { .grid { grid-template-columns: 1fr; } }
+
+label { display: block; font-size: 12px; color: var(--dim); margin-bottom: 4px; }
+input {
+  width: 100%; background: #0c0c10; color: var(--text);
+  border: 1px solid var(--line); border-radius: 3px;
+  padding: 8px 10px; font: inherit; outline: none;
+}
+input:focus { border-color: #3d3d48; }
+input:disabled { color: var(--dim); background: #0a0a0e; cursor: not-allowed; }
+.note { font-size: 11px; color: var(--dim); margin-top: 4px; }
+.note a { color: var(--link); }
+.note code { font-family: ui-monospace, Consolas, monospace; color: var(--text); }
+
+button.act {
+  background: #1e1e26; color: var(--text);
+  border: 1px solid var(--line); border-radius: 3px;
+  padding: 8px 16px; font: inherit; cursor: pointer;
+}
+button.act:hover { background: #24242e; }
+button.act:disabled { opacity: .4; cursor: default; }
+.row { display: flex; gap: 8px; margin-top: 14px; }
+
+.tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+.tag {
+  background: #1e1e26; border: 1px solid var(--line);
+  border-radius: 3px; padding: 3px 8px; font-size: 12px;
+  display: flex; align-items: center; gap: 8px;
+}
+.tag span { color: var(--dim); cursor: pointer; }
+.tag span:hover { color: var(--off); }
+.empty { font-size: 12px; color: var(--dim); }
+
+pre {
+  background: #0a0a0e; border: 1px solid var(--line); border-radius: 3px;
+  padding: 12px; max-height: 380px; overflow: auto;
+  font: 12px/1.7 ui-monospace, Consolas, monospace; color: #9a9aa4;
+  white-space: pre-wrap; word-break: break-all;
+}
+
+dialog {
+  background: var(--panel); color: var(--text);
+  border: 1px solid var(--line); border-radius: 4px;
+  padding: 24px; width: 340px; max-width: 90vw;
+}
+dialog::backdrop { background: rgba(0,0,0,.7); }
+dialog h2 { font-size: 15px; margin-bottom: 6px; }
+dialog p { font-size: 12px; color: var(--dim); margin-bottom: 16px; }
+dialog .err {
+  font-size: 12px; color: var(--off); background: rgba(181,80,79,.1);
+  border: 1px solid rgba(181,80,79,.3); border-radius: 3px;
+  padding: 7px 10px; margin-bottom: 12px;
+}
+dialog input { text-align: center; letter-spacing: .2em; margin-bottom: 12px; }
+
+#toast {
+  position: fixed; bottom: 20px; left: 50%;
+  transform: translate(-50%, 60px);
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: 3px; padding: 9px 18px; font-size: 13px;
+  opacity: 0; transition: .2s;
+}
+#toast.show { transform: translate(-50%, 0); opacity: 1; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>kiro bridge</h1>
+  <span class="state" id="state">checking</span>
+</header>
+
+<nav>
+  <button class="sel" data-tab="main">Overview</button>
+  <button data-tab="conf">Configuration</button>
+  <button data-tab="log">Log</button>
+</nav>
+
+<section class="sel" id="tab-main">
+  <fieldset>
+    <legend>Runtime</legend>
+    <div class="grid">
+      <div><label>Owner</label><input id="v-owner" readonly></div>
+      <div><label>Chat filter</label><input id="v-chats" readonly></div>
+    </div>
+    <div class="row">
+      <button class="act" id="btn-start">Start</button>
+      <button class="act" id="btn-stop">Stop</button>
+    </div>
+  </fieldset>
+</section>
+
+<section id="tab-conf">
+  <fieldset>
+    <legend>Telegram account</legend>
+    <div class="grid">
+      <div>
+        <label>api_id</label>
+        <input id="f-api_id" type="number">
+        <div class="note">From <a href="https://my.telegram.org" target="_blank">my.telegram.org</a></div>
+      </div>
+      <div><label>api_hash</label><input id="f-api_hash"></div>
+      <div><label>phone</label><input id="f-phone" placeholder="+79001234567"></div>
+      <div>
+        <label>owner_id</label>
+        <input id="f-owner_id" type="number">
+        <div class="note">Your own Telegram user id</div>
+      </div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>kiro-cli</legend>
+    <div class="grid">
+      <div class="wide">
+        <label>api key</label>
+        <input id="f-kiro_api_key" type="password">
+        <div class="note">Only needed if kiro-cli is not already logged in on this machine</div>
+      </div>
+      <div class="wide"><label>working directory</label><input id="f-kiro_working_dir"></div>
+      <div><label>timeout, seconds</label><input id="f-response_timeout" type="number"></div>
+      <div><label>max reply length</label><input id="f-max_response_length" type="number"></div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Profiles</legend>
+    <div class="note" style="margin-bottom:10px">
+      Switch the bridge account's name and photo from Telegram with <code>.profile &lt;name&gt;</code>.
+    </div>
+    <div id="profile-list"></div>
+
+    <div class="grid" style="margin-top:14px">
+      <div><label>name (used as .profile key)</label><input id="pf-name" placeholder="teto"></div>
+      <div><label>first name</label><input id="pf-first"></div>
+      <div>
+        <label>username, no @</label>
+        <input id="pf-username" placeholder="leave empty to keep current">
+      </div>
+      <div>
+        <label>&nbsp;</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text)">
+          <input id="pf-clear-username" type="checkbox" style="width:auto">
+          clear username instead
+        </label>
+      </div>
+      <div><label>bio</label><input id="pf-about"></div>
+      <div class="wide">
+        <label>avatar</label>
+        <input id="pf-file" type="file" accept="image/*">
+      </div>
+    </div>
+    <div class="row">
+      <button class="act" id="btn-profile-save">Save profile</button>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Username</legend>
+    <div class="note" style="margin-bottom:10px">
+      Change it directly without a saved profile, from Telegram: <code>.username name</code>
+      or <code>.username -</code> to remove it.
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Direct API providers</legend>
+    <div class="grid">
+      <div class="wide">
+        <label>deepseek api key</label>
+        <input id="f-deepseek_api_key" type="password">
+        <div class="note">
+          From <a href="https://platform.deepseek.com/api_keys" target="_blank">platform.deepseek.com</a>.
+          Enter the mode from Telegram with <code>.deepseek</code>, leave it with <code>exit</code>.
+        </div>
+      </div>
+    </div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Chat filter</legend>
+    <div class="tags" id="tags"></div>
+    <div class="row">
+      <input id="new-chat" type="number" placeholder="chat id">
+      <button class="act" id="btn-add">Add</button>
+    </div>
+    <div class="note">Leave empty to accept your messages from any chat</div>
+  </fieldset>
+
+  <fieldset>
+    <legend>Web interface</legend>
+    <div class="grid">
+      <div><label>port</label><input id="f-web_port" type="number"></div>
+      <div><label>session file</label><input id="f-session_name"></div>
+      <div>
+        <label>bind address</label>
+        <input id="f-web_host" placeholder="127.0.0.1">
+        <div class="note">Keep 127.0.0.1 unless you really need remote access</div>
+      </div>
+      <div>
+        <label>password</label>
+        <input id="f-web_token" type="password" autocomplete="new-password">
+        <div class="note">Required to bind anything other than 127.0.0.1</div>
+      </div>
+    </div>
+  </fieldset>
+
+  <button class="act" id="btn-save">Save</button>
+</section>
+
+<section id="tab-log">
+  <pre id="log">loading</pre>
+</section>
+
+</div>
+
+<dialog id="login">
+  <h2 id="login-title">Login code</h2>
+  <p id="login-hint">Enter the code Telegram sent to the bridge account</p>
+  <div class="err" id="login-err" hidden></div>
+  <input id="login-input" autocomplete="off">
+  <button class="act" id="login-send" style="width:100%">Submit</button>
+</dialog>
+
+<div id="toast"></div>
+
+<script>
+const FIELDS = [
+  'api_id', 'api_hash', 'phone', 'owner_id', 'kiro_api_key',
+  'deepseek_api_key', 'kiro_working_dir', 'response_timeout',
+  'max_response_length', 'web_host', 'web_port', 'web_token', 'session_name'
+];
+
+// Never echoed back by the server. Blank means keep, "-" means clear.
+const SECRETS = ['api_hash', 'kiro_api_key', 'deepseek_api_key', 'web_token'];
+
+let chats = [];
+const $ = id => document.getElementById(id);
+
+function toast(msg) {
+  const el = $('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+async function api(path, body) {
+  const opts = body
+    ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+    : {};
+  const res = await fetch(path, opts);
+  return res.json();
+}
+
+// tabs
+document.querySelectorAll('nav button').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('sel'));
+    document.querySelectorAll('section').forEach(s => s.classList.remove('sel'));
+    btn.classList.add('sel');
+    $('tab-' + btn.dataset.tab).classList.add('sel');
+    if (btn.dataset.tab === 'log') loadLog();
+  };
+});
+
+// config
+async function loadConfig() {
+  const data = await api('/api/config');
+  const stored = data.secrets_set || {};
+  const fromEnv = data.from_env || {};
+
+  FIELDS.forEach(f => {
+    const el = $('f-' + f);
+    if (!el) return;
+
+    // Supplied by .env or the shell: the file value would be ignored anyway.
+    if (fromEnv[f]) {
+      el.value = SECRETS.includes(f) ? '' : (data[f] ?? '');
+      el.placeholder = 'set by ' + fromEnv[f];
+      el.disabled = true;
+      el.title = 'Comes from the environment, edit .env instead';
+      return;
+    }
+    el.disabled = false;
+    el.title = '';
+
+    if (SECRETS.includes(f)) {
+      el.value = '';
+      el.placeholder = stored[f] ? 'saved, blank keeps it, - clears it' : 'not set';
+      return;
+    }
+    if (data[f] !== undefined && data[f] !== null) el.value = data[f];
+  });
+
+  chats = data.allowed_chats || [];
+  drawTags();
+}
+
+function drawTags() {
+  const box = $('tags');
+  if (!chats.length) {
+    box.innerHTML = '<span class="empty">any chat</span>';
+    return;
+  }
+  box.innerHTML = chats.map(id =>
+    `<span class="tag">${id}<span data-id="${id}">remove</span></span>`
+  ).join('');
+  box.querySelectorAll('[data-id]').forEach(el => {
+    el.onclick = () => {
+      chats = chats.filter(x => x !== Number(el.dataset.id));
+      drawTags();
+    };
+  });
+}
+
+$('btn-add').onclick = () => {
+  const value = Number($('new-chat').value);
+  if (value && !chats.includes(value)) {
+    chats.push(value);
+    drawTags();
+    $('new-chat').value = '';
+  }
+};
+
+$('btn-save').onclick = async () => {
+  const payload = { allowed_chats: chats };
+  FIELDS.forEach(f => {
+    const el = $('f-' + f);
+    if (!el || el.disabled) return;
+    // A blank secret means "leave the stored one alone", so don't send it.
+    if (SECRETS.includes(f) && el.value === '') return;
+    payload[f] = el.value;
+  });
+  const res = await api('/api/config', payload);
+  toast(res.message);
+  loadConfig();
+};
+
+// state
+async function loadState() {
+  const s = await api('/api/state');
+  const el = $('state');
+  el.innerHTML = s.running ? 'status <b>running</b>' : 'status <b>stopped</b>';
+  el.classList.toggle('up', s.running);
+  $('btn-start').disabled = s.running;
+  $('btn-stop').disabled = !s.running;
+  $('v-owner').value = s.owner_id || '';
+  $('v-chats').value = (s.allowed_chats || []).length ? s.allowed_chats.join(', ') : 'any';
+}
+
+$('btn-start').onclick = async () => {
+  toast((await api('/api/start', {})).message);
+  setTimeout(loadState, 1500);
+  setTimeout(checkLogin, 1200);
+};
+
+$('btn-stop').onclick = async () => {
+  toast((await api('/api/stop', {})).message);
+  setTimeout(loadState, 800);
+};
+
+// login dialog
+const dlg = $('login');
+
+async function checkLogin() {
+  const s = await api('/api/login');
+
+  const err = $('login-err');
+  if (s.error) { err.textContent = s.error; err.hidden = false; }
+  else err.hidden = true;
+
+  if (s.code || s.password) {
+    if (s.password) {
+      $('login-title').textContent = 'Cloud password';
+      $('login-hint').textContent = 'Two-factor authentication is enabled on that account';
+      $('login-input').type = 'password';
+    } else {
+      $('login-title').textContent = 'Login code';
+      $('login-hint').textContent = 'Enter the code Telegram sent to the bridge account';
+      $('login-input').type = 'text';
+    }
+    if (!dlg.open) dlg.showModal();
+  } else if (dlg.open) {
+    dlg.close();
+  }
+}
+
+$('login-send').onclick = async () => {
+  const input = $('login-input');
+  const value = input.value.trim();
+  if (!value) return;
+
+  const s = await api('/api/login');
+  const res = s.password
+    ? await api('/api/login/password', { password: value })
+    : await api('/api/login/code', { code: value });
+
+  toast(res.message);
+  input.value = '';
+  setTimeout(checkLogin, 1200);
+  setTimeout(loadState, 2500);
+};
+
+$('login-input').onkeydown = e => { if (e.key === 'Enter') $('login-send').click(); };
+
+// log
+async function loadLog() {
+  const { lines } = await api('/api/logs');
+  const el = $('log');
+  el.textContent = lines.length ? lines.join('\n') : 'empty';
+  el.scrollTop = el.scrollHeight;
+}
+
+// profiles
+async function loadProfiles() {
+  const list = await api('/api/profiles');
+  const box = $('profile-list');
+
+  if (!list.length) {
+    box.innerHTML = '<span class="empty">no profiles saved yet</span>';
+    return;
+  }
+
+  box.innerHTML = list.map(p => {
+    const handle = p.username ? '@' + p.username : (p.clear_username ? '(cleared)' : '-');
+    return `<div class="tag" style="width:100%;justify-content:space-between;margin-bottom:6px">
+      <span>${p.name} — ${p.first_name || '-'}, ${handle}${p.avatar ? ', photo' : ''}</span>
+      <span data-del="${p.name}">remove</span>
+    </div>`;
+  }).join('');
+
+  box.querySelectorAll('[data-del]').forEach(el => {
+    el.onclick = async () => {
+      await api('/api/profiles/' + encodeURIComponent(el.dataset.del) + '/delete', {});
+      loadProfiles();
+    };
+  });
+}
+
+$('btn-profile-save').onclick = async () => {
+  const name = $('pf-name').value.trim();
+  if (!name) { toast('Profile needs a name'); return; }
+
+  let avatar = '';
+  const fileInput = $('pf-file');
+  if (fileInput.files.length) {
+    const form = new FormData();
+    form.append('file', fileInput.files[0]);
+    const res = await fetch('/api/profiles/avatar', { method: 'POST', body: form });
+    const data = await res.json();
+    avatar = data.filename || '';
+  }
+
+  const res = await api('/api/profiles', {
+    name,
+    first_name: $('pf-first').value,
+    username: $('pf-username').value.replace('@', '').trim(),
+    clear_username: $('pf-clear-username').checked,
+    about: $('pf-about').value,
+    avatar,
+  });
+
+  toast(res.message);
+  $('pf-name').value = $('pf-first').value = $('pf-username').value = $('pf-about').value = '';
+  $('pf-clear-username').checked = false;
+  fileInput.value = '';
+  loadProfiles();
+};
+
+loadConfig();
+loadState();
+loadLog();
+loadProfiles();
+setInterval(loadState, 4000);
+setInterval(checkLogin, 3000);
+setInterval(loadLog, 6000);
+</script>
+</body>
+</html>
