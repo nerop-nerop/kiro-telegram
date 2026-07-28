@@ -1,40 +1,88 @@
-# Secrets and local state
+# ===== Secrets & Local State =====
 .env
+.env.*
 !.env.example
 config.json
 *.session
 *.session-journal
 avatars/
-bridge.log
-bridge.log.*
 
-# Python
+# ===== Logs =====
+*.log
+*.log.*
+logs/
+
+# ===== Python =====
 __pycache__/
 *.py[cod]
+*.pyo
+*.egg
 *.egg-info/
 .eggs/
+*.manifest
+*.spec
 build/
 dist/
+wheels/
+*.whl
+*.tar.gz
+sdist/
 
-# Virtual environments
+# ===== Virtual Environments =====
 venv/
 .venv/
 env/
 ENV/
+env.bak/
+venv.bak/
+pip-log.txt
+pip-delete-this-directory.txt
 
-# Tooling caches
+# ===== Testing & Coverage =====
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.tox/
+.nox/
 .coverage
+.coverage.*
+*.cover
+*.py,cover
 htmlcov/
+.hypothesis/
+coverage.xml
+*.lcov
 
-# Editors
+# ===== Type Checkers =====
+.pyre/
+.pytype/
+.mypy_cache/
+
+# ===== Editors & IDE =====
 .vscode/
 .idea/
 *.swp
+*.swo
+*~
+*.sublime-workspace
+*.sublime-project
+.dir-locals.el
 
-# OS
+# ===== OS =====
 .DS_Store
 Thumbs.db
 desktop.ini
+$RECYCLE.BIN/
+System Volume Information/
+
+# ===== Misc =====
+.python-version
+instance/
+tmp/
+temp/
+*.bak
+*.backup
+*.db
+*.sqlite
+*.sqlite3
+cython_debug/
